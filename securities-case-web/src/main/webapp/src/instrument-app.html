@@ -1,0 +1,291 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/app-layout/app-header/app-header.html">
+<link rel="import" href="../bower_components/app-layout/app-scroll-effects/effects/waterfall.html">
+<link rel="import" href="../bower_components/app-layout/app-toolbar/app-toolbar.html">
+<link rel="import" href="../bower_components/app-layout/helpers/helpers.html">
+<link rel="import" href="../bower_components/app-route/app-location.html">
+<link rel="import" href="../bower_components/app-route/app-route.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../bower_components/iron-media-query/iron-media-query.html">
+<link rel="import" href="../bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="../bower_components/iron-selector/iron-selector.html">
+<link rel="import" href="../bower_components/granite-bootstrap/granite-bootstrap.html">
+
+<link rel="import" href="stomp-client-socket.html">
+<link rel="import" href="instrument-list.html">
+
+<dom-module id="instrument-app">
+
+  <template>
+
+    <style include="granite-bootstrap">
+      :host {
+        display: block;
+        position: relative;
+        padding-top: 130px;
+        padding-bottom: 64px;
+        min-height: 100vh;
+        --app-primary-color: #202020;
+        --app-secondary-color: #757575;
+        --app-accent-color: #172C50;
+        --paper-button-ink-color: var(--app-accent-color);
+        --paper-icon-button-ink-color: var(--app-accent-color);
+        --paper-spinner-color: var(--app-accent-color);
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+        color: var(--app-primary-color);
+      }
+
+      app-header {
+        @apply --layout-fixed-top;
+        z-index: 1;
+        background-color: rgba(255, 255, 255, 0.95);
+        --app-header-shadow: {
+          box-shadow: inset 0px 5px 6px -3px rgba(0, 0, 0, 0.2);
+          height: 10px;
+          bottom: -10px;
+        }
+        ;
+      }
+
+      paper-icon-button {
+        color: var(--app-primary-color);
+      }
+
+      .logo {
+        text-align: center;
+      }
+
+      .logo a {
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: 0.3em;
+        color: var(--app-primary-color);
+        text-decoration: none;
+        /* required for IE 11, so this <a> can receive pointer events */
+        display: inline-block;
+        pointer-events: auto;
+      }
+
+      .left-bar-item {
+        width: 40px;
+      }
+
+      .menu-btn {
+        display: none;
+      }
+
+
+      .announcer {
+        position: fixed;
+        height: 0;
+        overflow: hidden;
+      }
+
+      :host(:not([page=detail])) .back-btn {
+        display: none;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      #tabContainer {
+        position: relative;
+        height: 66px;
+      }
+
+
+
+      .drawer-list {
+        margin: 0 20px;
+      }
+
+      .drawer-list a {
+        display: block;
+        padding: 0 16px;
+        line-height: 40px;
+        text-decoration: none;
+        color: var(--app-secondary-color);
+      }
+
+      .drawer-list a.iron-selected {
+        color: black;
+        font-weight: bold;
+      }
+
+
+      app-drawer {
+        z-index: 3;
+      }
+
+      iron-pages {
+        max-width: 1440px;
+        margin: 0 auto;
+      }
+
+      footer {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        text-align: center;
+        margin-top: 20px;
+        line-height: 24px;
+      }
+
+      footer>a {
+        color: var(--app-secondary-color);
+        text-decoration: none;
+      }
+
+      footer>a:hover {
+        text-decoration: underline;
+      }
+
+      .demo-label {
+        box-sizing: border-box;
+        width: 120px;
+        padding: 6px;
+        margin: 8px auto 0;
+        background-color: var(--app-primary-color);
+        color: white;
+        text-transform: uppercase;
+      }
+
+      /* small screen */
+
+      @media (max-width: 767px) {
+        :host {
+          padding-top: 64px;
+        }
+
+        .menu-btn {
+          display: block;
+        }
+
+        :host([page=detail]) .menu-btn {
+          display: none;
+        }
+      }
+    </style>
+
+    <!--
+      instrument-data maintains the state of the user's instruments (in localstorage)
+    -->
+    <instrument-data id="instrumentDetails" instruments="{{instruments}}" num-items="{{numItems}}" total="{{total}}"></instrument-data>
+
+    <stomp-client-socket id="stompClientSocket" url="{{url}}" topic="{{topic}}"></stomp-client-socket>
+
+    <app-header role="navigation" id="header" effects="waterfall" condenses reveals>
+      <app-toolbar>
+        <div class="logo" main-title>
+          <a href="/" aria-label="Home">Instruments App</a>
+        </div>
+      </app-toolbar>
+    </app-header>
+    <div class="container">
+
+
+      <instrument-list name="instrumentList" instruments="[[instruments]]" total="[[total]]"></instrument-list>
+      <!-- Content here -->
+    </div>
+    <footer>
+
+    </footer>
+
+  </template>
+
+  <script>
+
+    class InstrumentApp extends Polymer.Element {
+
+      static get is() { return 'instrument-app'; }
+
+      static get properties() {
+        return {
+          url: {
+            type: String,
+            value: "/stomp"   // should be http://localhost:8080/stomp if running on seperate servers
+          },
+          topic: {
+            type: String,
+            value: "/topic/update"
+          },
+
+          numItems: {
+            type: Number,
+            value: 0
+          },
+
+        }
+      }
+
+      constructor() {
+        super();
+      }
+
+      ready() {
+        super.ready();
+
+        this._ensureLazyLoaded();
+
+        // Custom elements polyfill safe way to indicate an element has been upgraded.
+        this.removeAttribute('unresolved');
+        // listen for custom events
+
+        this.addEventListener('message', (e) => this._onSetInstrument(e));
+
+        this.$.stompClientSocket.connect();
+
+        // listen for online/offline
+        Polymer.RenderStatus.afterNextRender(this, () => {
+          window.addEventListener('online', (e) => this._notifyNetworkStatus(e));
+          window.addEventListener('offline', (e) => this._notifyNetworkStatus(e));
+        });
+
+      }
+
+      _onSetInstrument(event) {
+        let detail = event.detail;
+        this.$.instrumentDetails.setInstrument(detail);
+      }
+
+      _ensureLazyLoaded() {
+        // load lazy resources after render and set `loadComplete` when done.
+        if (!this.loadComplete) {
+          Polymer.RenderStatus.afterNextRender(this, () => {
+            Polymer.importHref(this.resolveUrl('lazy-resources.html'), () => {
+              // Register service worker if supported.
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('service-worker.js', { scope: '/' });
+              }
+              this._notifyNetworkStatus();
+              this.loadComplete = true;
+            });
+          });
+        }
+      }
+
+      _notifyNetworkStatus() {
+        let oldOffline = this.offline;
+        this.offline = !navigator.onLine;
+        // Show the snackbar if the user is offline when starting a new session
+        // or if the network status changed.
+        if (this.offline || (!this.offline && oldOffline === true)) {
+          if (!this._networkSnackbar) {
+            this._networkSnackbar = document.createElement('instrument-snackbar');
+            this.root.appendChild(this._networkSnackbar);
+          }
+          this._networkSnackbar.innerHTML = this.offline ?
+            'You are offline' : 'You are online';
+          this._networkSnackbar.open();
+        }
+      }
+
+    }
+
+    customElements.define(InstrumentApp.is, InstrumentApp);
+
+  </script>
+
+</dom-module>

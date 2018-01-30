@@ -1,0 +1,105 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/app-storage/app-localstorage/app-localstorage-document.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+
+<dom-module id="instrument-data">
+
+  <template>
+    <app-localstorage-document key="instruments-data" data="{{instruments}}"></app-localstorage-document>
+    <!--       instrumentsUrl should be http://localhost:8080/instruments if running on seperate servers, take care of cors as well (use cors extention for chrome for testing) -->
+    <iron-ajax auto url="/instruments" handle-as="json" on-response="getInstruments" debounce-duration="300"></iron-ajax>
+
+  </template>
+
+  <script>
+
+    class InstrumentData extends Polymer.Element {
+
+      static get is() { return 'instrument-data'; }
+
+      static get properties() {
+        return {
+          instrumentsUrl: {
+            type: String,
+            notify: true
+          },
+          instruments: {
+            type: Array,
+            value: () => [],
+            notify: true
+          },
+
+          numItems: {
+            type: Number,
+            computed: '_computeNumItems(instruments.splices)',
+            notify: true
+          },
+
+          total: {
+            type: Number,
+            computed: '_computeTotal(instruments.splices)',
+            notify: true
+          }
+
+        }
+      }
+
+      getInstruments(data) {
+        this.set('instruments', data.detail.response);
+      }
+
+      setInstrument(detail) {
+        let i = this._indexOfEntry(detail.item.code);
+
+        // Use Polymer's array mutation methods (`splice`, `push`) so that observers
+        // on `instruments.splices` are triggered.
+        if (i !== -1) {
+          this.splice('instruments', i, 1, detail.item);
+        } else {
+          this.push('instruments', detail.item);
+        }
+      }
+
+      clearInstruments() {
+        this.instruments = [];
+      }
+
+      _computeNumItems() {
+        if (this.instruments) {
+          return this.instruments.length;
+        }
+
+        return 0;
+      }
+
+      _computeTotal() {
+        if (this.instruments) {
+          return this.instruments.reduce((total, entry) => {
+            return total + entry.price.amount;
+          }, 0);
+        }
+
+        return 0;
+      }
+
+      _indexOfEntry(name, size) {
+        if (this.instruments) {
+          for (let i = 0; i < this.instruments.length; ++i) {
+            let entry = this.instruments[i];
+            if (entry.code === name) {
+              return i;
+            }
+          }
+        }
+
+        return -1;
+      }
+
+
+    }
+
+    customElements.define(InstrumentData.is, InstrumentData);
+
+  </script>
+
+</dom-module>

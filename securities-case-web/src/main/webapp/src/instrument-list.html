@@ -1,0 +1,132 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/granite-bootstrap/granite-bootstrap.html">
+
+<!-- Loading this element due to test execution, not needed when running the app as it is already placed in lazy-resources.html -->
+<link rel="import" href="instrument-item.html">
+
+<dom-module id="instrument-list">
+
+  <template>
+
+    <style include="granite-bootstrap">
+      .list {
+        margin: 40px 0;
+      }
+
+      .checkout-box {
+        font-weight: bold;
+        text-align: right;
+        margin-right: 10px;
+      }
+
+      .subtotal {
+        margin: 0 64px 0 24px;
+      }
+
+      @media (max-width: 767px) {
+
+        .subtotal {
+          margin: 0 0 0 24px;
+        }
+
+      }
+    </style>
+    
+    <div class="main-frame">
+
+      <div class="subsection" visible$="[[_hasItems]]">
+        <header>
+          <h1>Instruments</h1>
+          <span>([[_getCount(instruments.length)]])</span>
+        </header>
+        <div class="list">
+
+          <ul class="list-group">
+            <div class="list-group-item">
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="d-flex w-100 justify-content-between">
+                    <h5 class="mb-1">Code</h5>
+                  </div>
+
+                </div>
+                <div class="col-md-2">
+                  <div class="d-flex w-100 justify-content-between">
+                    <h5 class="mb-1">Price</h5>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="d-flex w-100 justify-content-between">
+                    <h5 class="mb-1">Updated Date</h5>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+            <dom-repeat items="[[instruments]]" as="entry">
+              <template>
+                <instrument-item class="list-group-item" entry="[[entry]]"></instrument-item>
+              </template>
+            </dom-repeat>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+
+  </template>
+
+  <script>
+
+    class InstrumentList extends Polymer.Element {
+
+      static get is() { return 'instrument-list'; }
+
+      static get properties() {
+        return {
+
+          total: Number,
+
+          instruments: Array,
+
+          visible: {
+            type: Boolean,
+            observer: '_visibleChanged'
+          },
+
+          _hasItems: {
+            type: Boolean,
+            computed: '_computeHasItem(instruments.length)'
+          }
+
+        }
+      }
+
+      _formatTotal(total) {
+        return isNaN(total) ? '' : '$' + total.toFixed(2);
+      }
+
+      _computeHasItem(len) {
+        return len > 0;
+      }
+
+      _getCount(len) {
+        return len + ' ' + (len === 1 ? 'item' : 'items');
+      }
+
+      _visibleChanged(visible) {
+        if (visible) {
+          // Notify the section's title
+          this.dispatchEvent(new CustomEvent('change-section', {
+            bubbles: true, composed: true, detail: { title: 'Your instruments' }
+          }));
+        }
+      }
+
+    }
+
+    customElements.define(InstrumentList.is, InstrumentList);
+
+  </script>
+
+</dom-module>

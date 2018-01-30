@@ -1,0 +1,73 @@
+<!doctype html>
+
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>instrument-list</title>
+
+  <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+
+  <!-- Import the element to test -->
+  <link rel="import" href="../src/instrument-list.html">
+
+</head>
+
+<body>
+
+  <test-fixture id="basic">
+    <template>
+      <instrument-list></instrument-list>
+    </template>
+  </test-fixture>
+
+  <script>
+    suite('instrument-list tests', function () {
+      var instrument;
+
+      var instrumentData = [
+        {
+          code: "test1",
+          price: { amount: 10, when: 4652341234 },
+        },
+        {
+          code: "test2",
+          price: { amount: 20, when: 4652345683 },
+        }
+      ]
+
+      setup(function () {
+        instrument = fixture('basic');
+      });
+
+      test('instrument item lengths should be equal', function (done) {
+        // Set instrument property
+        instrument.instruments = instrumentData;
+        // Data bindings will stamp out new DOM asynchronously
+        // so wait to check for updates
+        flush(function () {
+          var items = instrument.shadowRoot.querySelectorAll('instrument-item');          
+          assert.equal(Object.keys(instrument.instruments).length, items.length);
+          done();
+        });
+      });
+
+      
+      test('change-section event should fire', function (done) {
+        var listenerSpy = sinon.spy();
+        instrument.addEventListener('change-section', listenerSpy);
+        // Set visible attribute
+        instrument.setAttribute('visible', '');
+        flush(function () {
+          assert.isTrue(listenerSpy.called, 'should fire after attribute "visible" is set');
+          done();
+        });
+      });
+
+    });
+  </script>
+
+</body>
+
+</html>

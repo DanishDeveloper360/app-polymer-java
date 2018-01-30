@@ -1,0 +1,91 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<script type="text/javascript" src="//cdn.jsdelivr.net/sockjs/0.3.4/sockjs.min.js"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+<dom-module id="stomp-client-socket">
+
+  <template>
+  </template>
+
+  <script>
+
+    class stompClientSocket extends Polymer.Element {
+
+      static get is() { return 'stomp-client-socket'; }
+
+      static get properties() {
+        return {
+
+          protocol: {
+            type: String,
+            notify: true
+          },
+          url: {
+            type: String,
+            notify: true
+          },
+          topic: {
+            type: String,
+            notify: true
+          }
+
+        }
+      }
+
+      constructor() {
+        super();
+        this.socket = null;
+      }
+      
+      _handleEvent(event) {
+        this.dispatchEvent(event);
+      }
+
+      send(message) {
+        if (this.socket)
+          this.socket.send(message);
+      }
+      close() {
+        if (this.socket)
+          this.socket.close();
+      }
+      connect() {
+
+        if (this.socket)
+          this.close();
+
+        if (!this.url || !this.topic)
+          return;
+
+        this.socket = new SockJS(this.url);
+
+        var stompClient = Stomp.over(this.socket);
+        var topic = this.topic;
+        var element = this;
+        stompClient.connect({}, function () {
+
+          stompClient.subscribe(topic, function (message) {
+            var parsedMessage = JSON.parse(message.body);
+
+            var event =
+              new CustomEvent('message', {
+                bubbles: true, composed: true, detail: {
+                  item: parsedMessage
+                }
+              });
+
+
+            element._handleEvent(event);
+          });
+
+        });
+      }
+
+    }
+
+    customElements.define(stompClientSocket.is, stompClientSocket);
+
+
+  </script>
+
+</dom-module>

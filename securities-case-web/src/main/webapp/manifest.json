@@ -1,0 +1,9 @@
+{
+  "name": "instrument",
+  "short_name": "instrument",
+  "icons": [],
+  "start_url": "/",
+  "background_color": "#fff",
+  "display": "standalone",
+  "theme_color": "#fff"
+}
